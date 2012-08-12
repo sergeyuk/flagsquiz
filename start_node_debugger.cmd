@@ -1,0 +1,2 @@
+node-inspector &
+pause

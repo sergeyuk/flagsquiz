@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Football logos quiz</title>
+		<style type="text/css">
+			body {
+				font-family: Monospace;
+				background-color: #f0f0f0;
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<link type="text/css" href="css/ui-darkness/jquery-ui-1.8.18.custom.css" rel="stylesheet" />	
+		<SCRIPT type="text/javascript" src="js/jquery-1.7.1.min.js"></SCRIPT>
+		<SCRIPT type="text/javascript" src="js/jquery.layout-latest.js"></SCRIPT>
+		<SCRIPT type="text/javascript" src="js/jquery-ui-1.8.18.custom.min.js"></SCRIPT>
+		
+		<SCRIPT type="text/javascript">
+			$(document).ready(function () {
+				$('body').layout({ applyDefaultStyles: true });
+			});
+		</SCRIPT>
+		<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+		<SCRIPT type="text/javascript" src="code/client/client.js"></SCRIPT>
+	</head>
+	<body>
+		<DIV class="ui-layout-center" id="pre_login">
+			<center>
+				<h2>Please wait while connecting to the server..</h2>
+			</center>
+		</DIV>
+		<DIV class="ui-layout-center" id="main_page" style="display:none">
+			<div id='start_page_header'>
+				<h2 style="text-align:center">Welcome to football logos quiz!</h2>
+				<div>
+					<button id='start_challenge_button' style="text-align:center">Start Challenge</button>
+				</div>
+			</div>
+			<br><br>
+			<div id='main_area'></div>			
+		</DIV>
+		<div class="ui-layout-center" id="challenge_page" style="display:none">
+			<div id='clock'>
+				<!-- <h2 id="challenge_clock">01:00</h2> -->
+			</div>
+			<div id="challenge_main_area">
+				<div id="challenge_question_area" style="text-align:center">
+					
+				</div>
+				<br><br>
+				<div id="challenge_answer_area" style="text-align:center;">
+					<input id='challenge_answer_input_field' align='middle'/>Answer
+					<button id="next_question_button" style="display:none">Next Question</button>
+					<button id="finish_challenge_button" style="display:none">Finish</button>
+				</div>
+			</div>
+		</div>
+		<DIV class="ui-layout-east">East
+			<p>This is going to be chat</p>
+			<input />Input
+		</DIV>
+		<script type="text/javascript">
+				$('button').button();
+		</script>
+	</body>
+</html>
