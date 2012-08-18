@@ -9,6 +9,25 @@
 				margin: 0px;
 				overflow: hidden;
 			}
+			input{
+				padding:5px;
+				font-size:18px;
+				font-weight:bold;
+				font-family:Monospace;        
+			}
+			
+			#chat_box{
+			    font-family:tahoma;
+			    font-size:12px;
+			    color:black;
+			    border:thin solid black;
+			    height: 300px;
+			    width: 200px;
+			    overflow-x:hidden;
+			    /*float:left;*/
+			   	/*margin:0 auto;*/
+			}
+
 		</style>
 		<link type="text/css" href="css/ui-darkness/jquery-ui-1.8.18.custom.css" rel="stylesheet" />	
 		<SCRIPT type="text/javascript" src="js/jquery-1.7.1.min.js"></SCRIPT>
@@ -21,7 +40,9 @@
 			});
 		</SCRIPT>
 		<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+		<script src="http://vk.com/js/api/xd_connection.js?2" type="text/javascript"></script>
 		<SCRIPT type="text/javascript" src="code/client/client.js"></SCRIPT>
+		
 	</head>
 	<body>
 		<DIV class="ui-layout-center" id="pre_login">
@@ -32,8 +53,10 @@
 		<DIV class="ui-layout-center" id="main_page" style="display:none">
 			<div id='start_page_header'>
 				<h2 style="text-align:center">Welcome to football logos quiz!</h2>
-				<div>
-					<button id='start_challenge_button' style="text-align:center">Start Challenge</button>
+				<h5 id="user_name_field"></h5>
+				<br>
+				<div style="text-align:center;">
+					<button id='start_challenge_button' style="text-align:center;margin:0 auto;">Start Challenge</button>
 				</div>
 			</div>
 			<br><br>
@@ -48,16 +71,17 @@
 					
 				</div>
 				<br><br>
-				<div id="challenge_answer_area" style="text-align:center;">
-					<input id='challenge_answer_input_field' align='middle'/>Answer
-					<button id="next_question_button" style="display:none">Next Question</button>
-					<button id="finish_challenge_button" style="display:none">Finish</button>
+				<div id="challenge_answer_area" style="text-align:center;display:none;">
+					<p>Your Answer</p>
+					<input id='challenge_answer_input_field' style="width:150px;margin:0 auto;"/>
 				</div>
+				<button id="next_question_button" style="display:none;margin:0 auto;">Next Question</button>
+				<button id="finish_challenge_button" style="display:none;margin:0 auto;">Finish</button>
 			</div>
 		</div>
-		<DIV class="ui-layout-east">East
-			<p>This is going to be chat</p>
-			<input />Input
+		<DIV class="ui-layout-east" style="display:none">
+			<div id='chat_box'></div>
+			<input id='chat_box_input'/>
 		</DIV>
 		<script type="text/javascript">
 				$('button').button();

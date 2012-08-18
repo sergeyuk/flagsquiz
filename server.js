@@ -1,7 +1,10 @@
 var QUESTIONS = {
-	1: ["1.jpg", ["Arsenal", "Gunners", "arsenal"] ],
-	2: ["2.jpg", ["Liverpool", "liverpool"]]
+	1: ["1.jpg", ["arsenal", "gunners","арсенал"] ],
+	2: ["2.jpg", ["liverpool","ливерпуль"]],
+	3: ["3.jpg", ["chelsea", "челси"]]
 };
+
+var TOTAL_QUESTIONS = 3;
 
 var USER_STATE_IDLE = 0;
 var USER_STATE_CHALLENGE_REQUESTED = 1;
@@ -13,17 +16,58 @@ var SERVER_USER_CLASS = function( id ){
 	this.last_question_asked = 0;
 };
 
-var USERS_DATA = {
-	
-};
-
 var gameport        = process.env.PORT || 8000,
     io              = require('socket.io'),
     express         = require('express'),
     UUID            = require('node-uuid'),
-    app             = express.createServer();
+    vkapi			= require( './js/vksdk.js'),
+    app             = express(),
+    querystring 	= require( 'querystring' );
 
-app.get( '/', function( req, res ){ 
+var DB = require('mongodb').Db,
+	DB_CONNECTION = require('mongodb').Connection,
+	DB_SERVER = require('mongodb').Server,
+	DB_OBJECT_ID = require('mongodb').ObjectID;
+
+var dbhost = process.env['MONGO_NODE_DRIVER_HOST'] != null ? process.env['MONGO_NODE_DRIVER_HOST'] : 'localhost';
+var dbport = process.env['MONGO_NODE_DRIVER_PORT'] != null ? process.env['MONGO_NODE_DRIVER_PORT'] : DB_CONNECTION.DEFAULT_PORT;
+
+var db_connection = new DB('football_logo_quiz_db', new DB_SERVER( dbhost, dbport, {}));
+db_connection.open( function( error_code ){
+	db_connection.collection( 'users', function( error_code, collection ){
+	    collection.find({user_name:"Sergey"}, function(err, cursor){
+	    	cursor.toArray(function(err, items) {
+	    		if( items ){
+					console.log('Found a user.');
+					//console.log( items );
+					var user = items[0];
+					console.log( user );
+					user.score = 30;
+					collection.update( {user_name:"Sergey"}, user, {safe:true}, function(){
+						// Let's close the db
+						console.log( 'done' );
+						db_connection.close();
+					} );	
+	    		}
+	    		else{
+	    			console.log('Not Found a user.');
+	    			db_connection.close();
+	    		}
+          	});
+	    })  // ok			
+	} );
+} );
+
+
+
+
+
+vkapi.init('2344570', 'sDqG6BNcDeIdLkytRzSo');
+
+app.get( '/', function( req, res ){
+	//console.log( 'HTTP RQ: ')
+	//console.log( req );
+	 
     res.sendfile( __dirname + '/index.html' );
 });
 
@@ -36,21 +80,53 @@ app.get( '/*' , function( req, res, next ) {
 var sio = io.listen( app.listen( gameport ) );
 console.log('\t :: Express :: Listening on port ' + gameport );
 
+sio.set('log level', 3);
+
+
 sio.configure(function (){
-    sio.set('log level', 0);
-    sio.set('authorization', function (handshakeData, callback) {
-      callback(null, true); // error first callback style 
-    });
+  sio.set('authorization', function (handshakeData, callback) {
+  	console.log( '==================== AUTH ==========================\nhandshakeData: ');
+  	
+  	if( handshakeData && handshakeData.headers && handshakeData.headers.referer ){
+	  	var obj = querystring.parse( handshakeData.headers.referer )
+	  	handshakeData.user_id = obj.viewer_id;
+	  	console.log( 'Authorised user ' + obj.user_id );
+	  	callback(null, true); // error first callback style
+  	}
+  	else{
+  		console.log( 'Authorisation failed' );
+  		callback(null, false); // error first callback style
+  	}
+  	
+  	console.log( '/AUTH');
+  });
 });
 
+//sio.configure(function (){
+//    sio.set('log level', 0);
+    //sio.set('authorization', function (handshakeData, callback) {
+    //  callback(null, true); // error first callback style 
+    //});
+//});
+
 sio.sockets.on('connection', function (client) {
-    client.userid = UUID();
-    USERS_DATA[client.userid] = new SERVER_USER_CLASS( client.userid );
-    USERS_DATA[client.userid].socket = client;
-    client.user = USERS_DATA[client.userid];
+	console.log( '==============================================\nsocketio client: ');
+	console.log( client.handshake );
+	console.log( '/socketio client: ');
+	
+    client.userid = client.handshake.user_id;
+    client.user = new SERVER_USER_CLASS( client.userid );
+
+	vkapi.request('getProfiles', {'uids' : client.userid}, function(response) {
+			client.vk_object = response.response[0];
+			console.log( 'User connected:' );
+	        //console.log(response);
+	        
+	        client.emit('onconnected', { id: client.userid, vkobj: client.vk_object} );
+			console.log('\t socket.io:: player ' + client.userid + ' connected');
     
-    client.emit('onconnected', { id: client.userid } );
-	console.log('\t socket.io:: player ' + client.userid + ' connected');
+	});
+    
     
     client.on('disconnect', function () {
 		console.log('\t socket.io:: client disconnected ' + client.userid );
@@ -60,11 +136,11 @@ sio.sockets.on('connection', function (client) {
     
     client.on( 'request challenge', function() {
     	if( client.user.state == USER_STATE_IDLE ){
-	    	accept_challenge( client, 2 );	
+	    	accept_challenge( client, TOTAL_QUESTIONS );	
 	    	send_question( client, 1 );
     	}
     	else{
-    		console.log( "Error challenge request. The user " + socket.user.id + " is not in IDLE state." );
+    		console.log( "Error challenge request. The user " + client.user.id + " is not in IDLE state." );
     	}
     });
     
@@ -83,9 +159,17 @@ sio.sockets.on('connection', function (client) {
     		send_question( client, client.user.last_question_asked + 1 );
     	}
     } );
+    
+    client.on( 'chat message', function( msg ){
+    	console.log( 'chat message from ' + client.userid + ': ' + msg)
+    	client.broadcast.emit( 'chat message', [client.vk_object, msg]);
+    });
 }); 
 
 function handle_answer( socket, answer ){
+	
+	answer = answer.toLowerCase();
+	
 	var user = socket.user;
 	var question_id = user.last_question_asked;
 	
@@ -93,13 +177,18 @@ function handle_answer( socket, answer ){
 		var correct = false;
 		var answers = QUESTIONS[question_id][1];
 		for( var i = 0, e = answers.length; i < e; i++ ){
-			if( answers[i] == answer ){
+			console.log( '\"' + answer + '\".indexOf( \"' + answers[i] + '\") = ' + answer.indexOf( answers[i] ) );
+			if( answer.indexOf( answers[i] ) != -1 ){
 				correct = true;
 				break;
 			}
 		}
 		
 		socket.emit( 'answer result', [correct] );
+		
+		if( question_id == TOTAL_QUESTIONS ){
+			user.state = USER_STATE_IDLE;
+		}
 	}	
 	else{
 		console.log( "Error in handle_answer. User " + user.id + " wasn't asked any questions." );
@@ -137,30 +226,6 @@ var Db = require('mongodb').Db,
 	Server = require('mongodb').Server,
 	ObjectID = require('mongodb').ObjectID;
     
-app.listen( gameport );
-console.log('\t :: Express :: Listening on port ' + gameport );
-
-        //By default, we forward the / path to index.html automatically.
-    app.get( '/', function( req, res ){ 
-        res.sendfile( __dirname + '/index.html' );
-    });
-
-    app.get( '/*' , function( req, res, next ) {
-        //This is the current file they have requested
-        var file = req.params[0]; 
-        if(verbose) console.log('\t :: Express :: file requested : ' + file);
-        res.sendfile( __dirname + '/' + file );
-    });
-
-        
-    var sio = io.listen(app);
-    sio.configure(function (){
-        sio.set('log level', 0);
-
-        sio.set('authorization', function (handshakeData, callback) {
-          callback(null, true); 
-        });
-    });
 
 
 var USER = function( user_id ){
